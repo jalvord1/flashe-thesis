@@ -10,6 +10,301 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #loading data
 ```{r}
+#Packages
+library(haven)
+library(dplyr)
+library(tidyr)
+library(mosaic)
+library(psych)
+library(nlme)
 
+#Adolescent demographic data
+teen_demog <- read_sav("Teen-Demographic-SPSS.sav")
+
+#Adolescent diet data
+teen_diet <- read_sav("teen_diet_public_updated.sav")
+
+#Adolescent physical activity data
+teen_pa <- read_sav("teenpa_public_updated.sav")
+
+#Parent demographic data
+parent_demog <- read_sav("Parent-Demographic-SPSS.sav")
+
+#Parents diet data
+parent_diet <- read_sav("parent_diet_public_updated.sav")
+
+#Parent physical activity data
+parent_pa <- read_sav("parent_pa_public_updated.sav")
+```
+
+#Cleaning var names -- Parent
+```{r}
+#### --- Cleaning parent diet
+
+#getting rid of the p at the beginning
+names(parent_diet)[8:110] <- substring(names(parent_diet)[8:110],2)
+#getting rid of x and p for the computed variables at the end
+names(parent_diet)[116:147] <- substring(names(parent_diet)[116:147],3)
+
+
+#### --- Cleaning parent physical activity
+
+#getting rid of the p at the beginning
+names(parent_pa)[8:119] <- substring(names(parent_pa)[8:119],2)
+#getting rid of x and p for computed variables at the end
+names(parent_pa)[125:130] <- substring(names(parent_pa)[125:130],3)
+#Individual cleaning
+parent_pa <- parent_pa %>%
+  rename(PVIGMINS_X = XPPVIGMINS, PMODMINS_X = XPPMODMINS, PWLKMINS_X = XPPWLKMINS, PSITMINS_X = XPPSITMINS)
+
+
+#### --- Cleaning parent demographic
+
+#Getting rid of the p at the beginning
+names(parent_demog)[3:23] <- substring(names(parent_demog)[3:23], 2)
+#getting rid of x and p
+names(parent_demog)[25:32] <- substring(names(parent_demog)[25:32], 3)
+#individual cleaning
+parent_demog <- parent_demog %>%
+  rename(ETHRAC_RC = PETHRAC_RC, CANCER_RC = XPCANCER_RC, AGE_RC = PAGE_RC, KIDSINHOME_RC =PKIDSINHOME_RC, TIMEADDRMM_RC = XPTIMEADDRMM_RC, WORKHRS_RC = PWORKHRS_RC, HSEHLDINCM_RC = PHSEHLDINCM_RC, NATIVAGE_RC = PNATIVAGE_RC, LITERACY_RC = PLITERACY_RC, LANGHOME_RC = XPLANGHOME_RC, MARITAL_RC = PMARITAL_RC, HOMEOWN_RC = PHOMEOWN_RC, HEIGHTCM_RC = XPHEIGHTCM_RC, WEIGHTKG_RC = XPWEIGHTKG_RC, THEIGHTCM_RC = XPTHEIGHTCM_RC, TWEIGHTKG_RC = XPTWEIGHTKG_RC)
+```
+
+#note : What about the wt_t_diet/wt_t_both and wt_p_diet/wt_p_both ??
+
+#Cleaning var names -- Teen
+
+```{r}
+#### --- Cleaning teen diet
+
+#getting rid of the t at the beginning
+names(teen_diet)[8:110] <- substring(names(teen_diet)[8:110],2)
+#getting rid of x and t for the computed variables at the end
+names(teen_diet)[116:147] <- substring(names(teen_diet)[116:147],3)
+
+
+#### --- Cleaning teen physical activity
+
+#getting rid of the t at the beginning
+names(teen_pa)[8:156] <- substring(names(teen_pa)[8:156],2)
+#getting rid of x and t for the computed variables at the end
+names(teen_pa)[158:165] <- substring(names(teen_pa)[158:165],3)
+names(teen_pa)[170:185] <- substring(names(teen_pa)[170:185],3)
+
+
+#### --- Cleaning teen demographic
+
+#getting rid of the t at the beginning
+names(teen_demog)[3:18] <- substring(names(teen_demog)[3:18],2)
+
+#getting rid of x and t for the computed variables at the end
+names(teen_demog)[20:23] <- substring(names(teen_demog)[20:23],3)
+names(teen_demog)[26:28] <- substring(names(teen_demog)[26:28],3)
+
+teen_demog <- teen_demog %>%
+  rename(ETHRAC_RC = TETHRAC_RC, WORKHRS_RC = TWORKHRS_RC)
+```
+
+#trying a rowbind
+```{r}
+#teen and parent diet
+# diet_full_temp <- bind_rows(teen_diet, parent_diet)
+```
+
+
+#Merging
+```{r, echo=FALSE}
+#merging parent datasets
+
+parent_full <- parent_demog %>%
+  full_join(parent_diet, by = "PID") %>%
+  full_join(parent_pa, by = "PID")
+
+parent_full <- parent_full %>%
+  select(- c(DYADID, DYADID.y)) %>%
+  rename(DYADID = DYADID.x, FASTCMPFL_DEMOG = FASTCMPFL.x, DATE_STARTED_DIET = DATE_STARTED.x, DATE_SUBMITTED_DIET = DATE_SUBMITTED.x, TASKID_DIET = TASKID.x, SEQ_DIET = SEQ.x, SURVEY_TYPE_DIET = SURVEY_TYPE.x, FASTCMPFL_DIET = FASTCMPFL.y, WT_P_BOTH_DIET = WT_P_BOTH.x, QUOTA_P_DIET = QUOTA_P.x, QUOTA_T_DIET = QUOTA_T.x, DATE_STARTED_PA = DATE_STARTED.y, DATE_SUBMITTED_PA = DATE_SUBMITTED.y, TASKID_PA = TASKID.y, SEQ_PA = SEQ.y, SURVEY_TYPE_PA = SURVEY_TYPE.y, WT_P_BOTH_PA = WT_P_BOTH.y, QUOTA_P_PA = QUOTA_P.y, QUOTA_T_PA = QUOTA_T.y) %>%
+  mutate(distinguish = "P")
+
+#Merging teen datasets
+
+teen_full <- teen_demog %>%
+  full_join(teen_diet, by = "PID") %>%
+  full_join(teen_pa, by = "PID")
+
+teen_full <- teen_full %>%
+    select(- c(DYADID, DYADID.y)) %>%
+  rename(DYADID = DYADID.x, FASTCMPFL_DEMOG = FASTCMPFL.x, DATE_STARTED_DIET = DATE_STARTED.x, DATE_SUBMITTED_DIET = DATE_SUBMITTED.x, TASKID_DIET = TASKID.x, SEQ_DIET = SEQ.x, SURVEY_TYPE_DIET = SURVEY_TYPE.x, FASTCMPFL_DIET = FASTCMPFL.y, WT_T_BOTH_DIET = WT_T_BOTH.x, QUOTA_P_DIET = QUOTA_P.x, QUOTA_T_DIET = QUOTA_T.x, DATE_STARTED_PA = DATE_STARTED.y, DATE_SUBMITTED_PA = DATE_SUBMITTED.y, TASKID_PA = TASKID.y, SEQ_PA = SEQ.y, SURVEY_TYPE_PA = SURVEY_TYPE.y, WT_T_BOTH_PA = WT_T_BOTH.y, QUOTA_P_PA = QUOTA_P.y, QUOTA_T_PA = QUOTA_T.y) %>%
+  mutate(distinguish = "T")
+```
+
+#attempting rowbind--full & cleaning
+```{r, echo=FALSE}
+#creating the big dataset
+full_data <- bind_rows(teen_full, parent_full)
+
+df <- subset(full_data, select=c(PID, DYADID, distinguish, FOLFAMRUL:PREDWEEKSED, TCURRCOV:WT_P_BOTH_PA))
+
+df_try <- df %>%
+  mutate(distinguish = ifelse(distinguish == "P", 1, 2)) %>%
+  arrange(DYADID) %>%
+  select(-PID)
+
+#necessary to get rid of individual identifier for next step!
+```
+
+#from individual -> pairwise
+```{r}
+tempA <- df_try %>%
+  mutate(distinguishE = distinguish, partnum = 1, distinguish = ifelse(distinguish == 1, "A", "P")) %>%
+  gather(variable, value, FOLFAMRUL:distinguishE) %>%
+  unite(var_distinguish, variable, distinguish) %>%
+  spread(var_distinguish, value)
+
+tempB <- df_try %>%
+  mutate(distinguishE = distinguish, partnum = 2, distinguish = ifelse(distinguish == 1, "P", "A")) %>%
+  gather(variable, value, FOLFAMRUL:distinguishE) %>%
+  unite(var_distinguish, variable, distinguish) %>%
+  spread(var_distinguish, value)
+
+df_pair <- bind_rows(tempA, tempB) %>%
+  arrange(DYADID)
+
+# write.csv(df_pair, "pairwise.csv", row.names = FALSE)
+
+#Why does this have more rows?
+```
+
+#corr reliability
+```{r}
+df_pair <- df_pair %>%
+  mutate_at(vars(PAPAATTRCT_A:PAPASTRESS_P), funs(as.numeric)) 
+
+# %>%
+#   mutate_at(.vars = vars(PAPAATTRCT_A:PAPASTRESS_P), .funs = ifelse(-9, NA, .))
+
+#This ^^ is what I want but not sure how to actually do it?
+
+#Corr Test
+corr.test(select(df_pair, PAPAFRNDS_A, PAPAFUN_A, PAPAGDLK_A, PAPASTRESS_A, PAPASPORTS_A))
+
+#Creating scale score using rowmeans
+df_pair$AttitudePA_T_A <- rowMeans(select(df_pair, PAPAFRNDS_A, PAPAFUN_A, PAPAGDLK_A, PAPASTRESS_A, PAPASPORTS_A), na.rm = TRUE)
+
+df_pair$AttitudePA_T_P <- rowMeans(select(df_pair, PAPAFRNDS_P, PAPAFUN_P, PAPAGDLK_P, PAPASTRESS_P, PAPASPORTS_P), na.rm = TRUE)
+
+#ICC
+apim_attitude_pa <- gls(Attitude_T_A ~ 1,
+                     data = df_pair,
+                     correlation = corCompSymm(form=~1|DYADID),
+                     na.action = na.omit)
+summary(apim_chcare)
+```
+
+#Descriptive Statistics
+```{r}
+#parent or teen
+df_pair$distinguishE_A <- as.numeric(df_pair$distinguishE_A)
+
+df_pair <- df_pair %>%
+  mutate(distinguish_str = ifelse(distinguishE_A == 1, "Parent", "Teen"))
+
+#sex
+df_pair$SEX_A <- as.numeric(df_pair$SEX_A)
+
+df_pair <- df_pair %>%
+  mutate(sex_str = ifelse(SEX_A == 1, "Male", "Female"))
+
+#age
+df_pair$AGE_A <- as.numeric(df_pair$AGE_A)
+
+df_pair <- df_pair %>%
+  mutate(age_A= ifelse(AGE_A == -9, NA,
+                       ifelse(AGE_A == 1, 11,
+                              ifelse(AGE_A == 2, 12,
+                                     ifelse(AGE_A == 3, 13,
+                                            ifelse(AGE_A == 4, 14,
+                                                   ifelse(AGE_A == 5, 15,
+                                                          ifelse(AGE_A == 6, 16,
+                                                                 ifelse(AGE_A == 7, 17, AGE_A)))))))))
+
+#creating single body image variable
+df_pair <- df_pair %>%
+  mutate(PA_body_image_A = ifelse(is.na(PAPAATTRCT_A), PAPAGDLK_A, PAPAATTRCT_A),
+         PA_body_image_P = ifelse(is.na(PAPAATTRCT_P), PAPAGDLK_P, PAPAATTRCT_P),
+         PA_body_image_A = ifelse(PA_body_image_A == -9, NA, PA_body_image_A),
+         PA_body_image_P = ifelse(PA_body_image_P == -9, NA, PA_body_image_P))
+
+#who most strongly agrees??
+favstats(PA_body_image_A ~ sex_str + distinguish_str, data = df_pair)
+
+#Sex and body image
+favstats(PA_body_image_A ~ sex_str, data = df_pair)
+
+ggplot(df_pair, aes(x = sex_str, y = PA_body_image_A)) +
+  geom_violin()
+
+#Teen vs parents body image
+favstats(PA_body_image_A ~ distinguish_str, data = df_pair)
+
+ggplot(df_pair, aes(x = distinguish_str, y = PA_body_image_A)) +
+  geom_violin()
+
+#age of teen and body image
+favstats(PA_body_image_A ~ age_A, data = df_pair)
+
+
+##new variable
+df_pair <- df_pair %>%
+  mutate(weightchange_A = as.numeric(WEIGHTCHNG_A),
+         weightchange_A = ifelse(weightchange_A == -9, NA, weightchange_A),
+         weightchange_P = as.numeric(WEIGHTCHNG_P),
+         weightchange_P = ifelse(weightchange_P == -9, NA, weightchange_P))
+
+df_pair <- df_pair %>%
+  mutate(weightchange_str_A = ifelse(weightchange_A == 1, "Lose weight",
+                                 ifelse(weightchange_A == 2, "Gain weight",
+                                        ifelse(weightchange_A == 3, "Stay same", NA))))
+
+favstats(PA_body_image_A ~ weightchange_str_A, data = df_pair)
+```
+
+#APIM
+```{r}
+apim1 <- gls(PA_body_image_A ~ distinguish_str + sex_str + distinguish_str*sex_str,
+                   data = df_pair,
+                   correlation = corCompSymm(form=~1|DYADID),
+                   weights = varIdent(form=~1|distinguish_str),
+                   na.action = na.omit)
+
+summary(apim1)
+
+#switching the numbers on weight change to have lose, stay same, gain weight
+df_pair <- df_pair %>%
+  mutate(wghtchange_A = ifelse(weightchange_A == 2, 3,
+                               ifelse(weightchange_A == 3, 2, weightchange_A)),
+         wghtchange_P = ifelse(weightchange_P == 2, 3,
+                               ifelse(weightchange_P == 3, 2, weightchange_P)))
+
+#another model
+
+apim2 <- gls(PA_body_image_A ~ wghtchange_A + wghtchange_P + distinguish_str,
+                   data = df_pair,
+                   correlation = corCompSymm(form=~1|DYADID),
+                   weights = varIdent(form=~1|distinguish_str),
+                   na.action = na.omit)
+
+summary(apim2)
+
+#switching variables
+
+df_pair$PA_body_image_A <- as.numeric(df_pair$PA_body_image_A)
+df_pair$PA_body_image_P <- as.numeric(df_pair$PA_body_image_P)
+
+apim3 <- gls(wghtchange_A ~ PA_body_image_A + PA_body_image_P + distinguish_str + PA_body_image_A*distinguish_str,
+                   data = df_pair,
+                   correlation = corCompSymm(form=~1|DYADID),
+                   weights = varIdent(form=~1|distinguish_str),
+                   na.action = na.omit)
+
+summary(apim3)
 ```
 
