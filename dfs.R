@@ -1,6 +1,8 @@
 #A script that will be sourced from the APP in order to call the cleaned individual
 #DF, dyad DF, and pairwise DF
 
+options(warn=-1)
+
 #Packages
 library(haven)
 library(dplyr)
