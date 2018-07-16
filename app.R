@@ -1,4 +1,6 @@
 library(shiny)
+library(formattable)
+library(DT)
 
 source("dfs.R")
 
@@ -23,7 +25,9 @@ ui <- fluidPage(
       uiOutput("varControls"),
       
       # Button
-      downloadButton("downloadData", "Download")
+      downloadButton("downloadData", "Download"),
+      
+      width = 3
       
     ),
     
@@ -31,7 +35,7 @@ ui <- fluidPage(
     mainPanel(
       
       tabsetPanel(type = "tabs",
-                  tabPanel("View Data", tableOutput("table")),
+                  tabPanel("View Data", dataTableOutput("table")),
                   tabPanel("Explore Variables"),
                   tabPanel("Data Formats")
       )
@@ -57,9 +61,9 @@ server <- function(input, output) {
   })
   
   # Table of selected dataset ----
-  output$table <- renderTable({
-    head(datasetInput() %>%
-      select(varInput()))
+  output$table <- renderDataTable({
+    datasetInput() %>%
+      select(varInput())
   })
   
   output$varControls <- renderUI({
@@ -74,7 +78,8 @@ server <- function(input, output) {
       paste(input$dataset, ".csv", sep = "")
     },
     content = function(file) {
-      write.csv(datasetInput(), file, row.names = FALSE)
+      write.csv(datasetInput() %>%
+                  select(varInput()), file, row.names = FALSE)
     }
   )
   
