@@ -1,5 +1,4 @@
 library(shiny)
-library(formattable)
 library(DT)
 
 source("dfs.R")
@@ -35,8 +34,13 @@ ui <- fluidPage(
     mainPanel(
       
       tabsetPanel(type = "tabs",
-                  tabPanel("View Data", dataTableOutput("table")),
-                  tabPanel("Explore Variables"),
+                  tabPanel("View Data", hr(),
+                           dataTableOutput("table")),
+                  tabPanel("Explore Variables", 
+                           column(3, hr(),
+                           uiOutput("varExplore")), 
+                           column(9, hr(),
+                           plotOutput("plot"))),
                   tabPanel("Data Formats")
       )
       
@@ -56,20 +60,37 @@ server <- function(input, output) {
            "Pairwise" = df_pair)
   })
   
-  varInput <- reactive({
-   input$vars
-  })
-  
   # Table of selected dataset ----
   output$table <- renderDataTable({
     datasetInput() %>%
       select(varInput())
-  })
+  }, options = list(scrollX = TRUE))
   
   output$varControls <- renderUI({
     whichone <- datasetInput()
     selectInput("vars", "Which variables do you want included?",
                 choices = names(whichone), multiple = TRUE, selected = "DYADID")
+  })
+  
+  varInput <- reactive({
+    input$vars
+  })
+  
+  output$varExplore <- renderUI({
+    whichone <- datasetInput()
+    selectInput("vars2", "Which variable do you want to explore?",
+                choices = names(whichone), selected = "DYADID")
+  })
+  
+  varInput2 <- reactive({
+    input$vars2
+  })
+  
+  #Plot for data exploration
+
+  output$plot <- renderPlot({
+    ggplot(datasetInput(), aes(varInput2())) +
+      geom_histogram(stat = "count")
   })
   
   # Downloadable csv of selected dataset ----
