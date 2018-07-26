@@ -136,6 +136,7 @@ df_indiv <- df %>%
   mutate(distinguish = ifelse(distinguish == "P", 1, 2)) %>%
   arrange(DYADID) %>%
   select(-PID)
+  # mutate_at(vars(DYADID:WT_P_BOTH_PA), funs(as.numeric))
 
 #necessary to get rid of individual identifier for next step!
 
@@ -148,6 +149,7 @@ df_dyad <- df_indiv %>%
   gather(variable, value, FOLFAMRUL:WT_P_BOTH_PA) %>%
   unite(var_distinguish, variable, distinguish) %>%
   spread(var_distinguish, value)
+  # mutate_at(vars(DYADID:YAPWEEKEND_T), funs(as.numeric))
 
 
 #### --- FROM INDIVIDUAL -> PAIRWISE
@@ -168,3 +170,4 @@ tempB <- df_indiv %>%
 #This is the pairwise df
 df_pair <- bind_rows(tempA, tempB) %>%
   arrange(DYADID)
+  # mutate_at(vars(DYADID:YAPWEEKEND_P), funs(as.numeric))
